@@ -21,6 +21,12 @@ type Config struct {
 	PasswordDB string
 	NameDB     string
 
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisDB       int
+	RedisProtocol int
+
 	ApiKey            string
 	ApiRateLimit      float64
 	ApiRateLimitBurst int
@@ -43,6 +49,16 @@ func LoadEnv() *Config {
 		log.Fatalf("Error parsing API_RATE_LIMIT_BURST: %v", err)
 	}
 
+	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		log.Fatalf("Error parsing REDIS_DB: %v", err)
+	}
+
+	redisProtocol, err := strconv.Atoi(os.Getenv("REDIS_PROTOCOL"))
+	if err != nil {
+		log.Fatalf("Error parsing REDIS_PROTOCOL: %v", err)
+	}
+
 	cfg.Protocols = os.Getenv("PROTOCOLS")
 	cfg.Host = os.Getenv("HOST")
 	cfg.Port = os.Getenv("PORT")
@@ -53,6 +69,12 @@ func LoadEnv() *Config {
 	cfg.UserDB = os.Getenv("DB_USER")
 	cfg.PasswordDB = os.Getenv("DB_PASSWORD")
 	cfg.NameDB = os.Getenv("DB_NAME")
+
+	cfg.RedisHost = os.Getenv("REDIS_HOST")
+	cfg.RedisPort = os.Getenv("REDIS_PORT")
+	cfg.RedisPassword = os.Getenv("REDIS_PASSWORD")
+	cfg.RedisDB = redisDB
+	cfg.RedisProtocol = redisProtocol
 
 	cfg.ApiKey = os.Getenv("API_KEY")
 	cfg.ApiRateLimit = float64(rateLimit)

@@ -9,7 +9,10 @@ import (
 )
 
 func Migrations(db *gorm.DB) error {
-	err := db.AutoMigrate(&models.Users{})
+	err := db.AutoMigrate(
+		&models.Users{},
+		&models.Posts{},
+	)
 	if err != nil {
 		services.Log(services.Logger{
 			Name:    "DATABASE",

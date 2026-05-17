@@ -3,8 +3,9 @@ package main
 import (
 	"belajargo/internal/config"
 	"belajargo/internal/database"
-	"belajargo/internal/routes"
+	"belajargo/internal/handlers"
 	"belajargo/internal/services"
+	"belajargo/internal/services/redis"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +29,18 @@ func main() {
 		panic(err)
 	}
 
+	rdb, err := redis.ConncetRedis(cfg)
+	if err != nil {
+		services.Log(services.Logger{
+			Name:    "REDIS",
+			Message: fmt.Sprintf("Failed to connect redis: %v", err),
+		})
+		panic(err)
+	}
+	defer rdb.Conn().Close()
+
+	redisStore := redis.NewStore(rdb)
+
 	mux := http.NewServeMux()
 	formats := make(map[string]huma.Format)
 	for k, v := range huma.DefaultFormats {
@@ -49,7 +62,16 @@ func main() {
 			Info: &huma.Info{
 				Title:       "API Belajar Go",
 				Version:     "1.0.0",
-				Description: "Belajar membuat API dengan Go",
+				Description: `API Belajar Go - RESTful API Performa Tinggi
+
+Sebuah RESTful API modern dan performa tinggi yang dirancang dengan arsitektur Clean Architecture menggunakan Go dan framework Huma v2.
+
+Fitur Utama:
+- **Modular & Clean Architecture**: Pemisahan tanggung jawab yang ketat antara Controller/Handler, Service, dan Repository.
+- **Endpoint Security**: Dilindungi dengan middleware X-API-Key untuk otentikasi yang aman.
+- **Client IP-Based Rate Limiting**: Pembatasan request yang adil per-IP menggunakan algoritma Token Bucket yang thread-safe dan dilengkapi auto-cleanup background memory.
+- **High-Performance Caching**: Dukungan Redis Cache-Aside (Lazy Loading) dan Active Cache Invalidation untuk response time sub-milidetik pada data User dan Post yang dinamis.
+- **Auto-Generated OpenAPI & Swagger Docs**: Dokumentasi API interaktif yang otomatis dibuat oleh Huma v2 di endpoint /docs.`,
 				Contact: &huma.Contact{
 					Name:  "Misbakhul Munir",
 					URL:   "https://misbakhul.my.id",
@@ -94,7 +116,12 @@ func main() {
 		Message: fmt.Sprintf("Starting server on %s", cfg.Address()),
 	})
 
-	err = http.ListenAndServe(cfg.ListenAddr(), routes.Handlers(db, api, mux, cfg))
+	services.Log(services.Logger{
+		Name:    "SERVER",
+		Message: fmt.Sprintf("Documentation server on %s/docs", cfg.Address()),
+	})
+
+	err = http.ListenAndServe(cfg.ListenAddr(), handlers.Handlers(db, api, mux, cfg, redisStore))
 	if err != nil {
 		panic(err)
 	}
