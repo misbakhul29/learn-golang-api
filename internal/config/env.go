@@ -13,6 +13,7 @@ type Config struct {
 	Protocols string
 	Host      string
 	Port      string
+	BaseURL   string
 
 	HostDB     string
 	PortDB     string
@@ -45,6 +46,7 @@ func LoadEnv() *Config {
 	cfg.Protocols = os.Getenv("PROTOCOLS")
 	cfg.Host = os.Getenv("HOST")
 	cfg.Port = os.Getenv("PORT")
+	cfg.BaseURL = os.Getenv("BASE_URL")
 
 	cfg.HostDB = os.Getenv("DB_HOST")
 	cfg.PortDB = os.Getenv("DB_PORT")
@@ -64,5 +66,8 @@ func (c *Config) ListenAddr() string {
 }
 
 func (c *Config) Address() string {
+	if c.BaseURL != "" {
+		return c.BaseURL
+	}
 	return fmt.Sprintf("%s://%s:%s", c.Protocols, c.Host, c.Port)
 }
