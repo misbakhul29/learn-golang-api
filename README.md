@@ -1,91 +1,124 @@
 # API Belajar Go
 
-Proyek ini adalah API sederhana untuk manajemen user yang dibangun menggunakan **Golang** dengan framework **Huma v2**. Proyek ini dirancang dengan arsitektur yang modular, aman, dan terdokumentasi dengan baik secara otomatis.
+RESTful API modern, aman, dan berkinerja tinggi yang dibangun menggunakan **Golang** dengan framework **Huma v2**. Proyek ini dirancang dengan prinsip **Clean Architecture**, terintegrasi dengan **Redis** untuk *high-performance caching*, dan dilengkapi dengan *client-IP-based rate limiting*.
 
 ## 🚀 Fitur Unggulan
 
-- **Huma v2 Framework**: Implementasi REST API modern dengan dukungan OpenAPI 3.1 otomatis.
-- **Security Middleware**:
-  - **API Key Authentication**: Melindungi setiap endpoint menggunakan header `X-API-Key`.
-  - **Rate Limiting**: Mencegah abuse dengan pembatasan jumlah request per detik (Token Bucket).
-- **Standardized Response**: Semua API mengembalikan struktur JSON yang seragam (`data`, `status`, `code`, `message`).
-- **Partial Updates**: Mendukung update data secara parsial (hanya field yang dikirim di JSON yang akan diupdate).
-- **Database GORM**: Integrasi PostgreSQL yang tangguh dengan pemetaan model otomatis.
-- **Auto-Generated Documentation**: Dokumentasi interaktif Swagger UI tersedia langsung tanpa konfigurasi manual.
+- **Huma v2 Framework**: Implementasi REST API modern dengan validasi cepat, pemetaan DTO otomatis, dan dukungan OpenAPI 3.1 & Swagger UI out-of-the-box.
+- **Clean Architecture Principles**: Pemisahan modul yang terstruktur antara Handler/Controller, Service (Business Logic), Repository (Data Access), dan DTO.
+- **Client IP-Based Rate Limiting**: Pembatasan request yang adil per-IP menggunakan algoritma Token Bucket yang thread-safe, lengkap dengan goroutine background untuk pembersihan otomatis (*garbage collection*) memori tak terpakai.
+- **High-Performance Redis Caching**:
+  - **Cache-Aside Pattern (Lazy Loading)**: Caching data on-demand untuk list user, detail user, list post, dan detail post demi performa respon sub-milidetik.
+  - **Active Cache Invalidation**: Otomatis membersihkan (*evict*) cache terkait secara real-time pada operasi pembuatan, pengubahan, atau penghapusan data (mencegah data basi).
+- **Flexible Preloading**: Mendukung parameter query opsional `include_users=true` pada GET posts untuk menampilkan relasi user secara instan dan efisien.
+- **OpenAPI & Swagger Documentation**: Halaman dokumentasi API interaktif yang otomatis dibuat dan disinkronisasikan di endpoint `/docs`.
 
 ## 🛠️ Tech Stack
 
 - **Language**: Go (Golang)
 - **API Framework**: [Huma v2](https://huma.rocks/)
 - **ORM**: [GORM](https://gorm.io/)
-- **Database**: PostgreSQL
-- **Security**: `golang.org/x/time/rate` (Rate Limiter)
+- **Database**: PostgreSQL (Relasional)
+- **In-Memory Store**: Redis (Cache)
+- **Rate Limiting**: `golang.org/x/time/rate`
+- **Hot Reload**: [Air](https://github.com/air-verse/air)
 
 ## 📁 Struktur Proyek
 
 ```text
 .
 ├── internal/
-│   ├── config/       # Konfigurasi environment (.env)
-│   ├── database/     # Inisialisasi koneksi database
-│   ├── models/       # GORM Models & Data Access Layer
-│   ├── routes/       # Handlers & Router orchestration
-│   │   ├── common/   # Middleware & Response templates (Global)
-│   │   └── users/    # Modul khusus User
-│   └── services/     # Shared services (Logger, dll)
-├── main.go           # Entry point aplikasi
-└── .env              # Konfigurasi rahasia (API Key, DB, dll)
+│   ├── config/         # Konfigurasi environment (.env)
+│   ├── database/       # Koneksi database & database seeder
+│   ├── dto/            # Data Transfer Object (Request/Response contracts)
+│   ├── handlers/       # Handler API & routing endpoint (Controller)
+│   ├── middlewares/    # Middleware (API Key, Rate Limiter per-IP)
+│   ├── models/         # Entity / Struct model database GORM
+│   ├── repositories/   # Lapisan akses data GORM (Repository)
+│   └── services/       # Lapisan bisnis & utilitas
+│       ├── api_services/ # Implementasi business logic (User, Post)
+│       └── redis/        # Koneksi, key registry, & store wrapper Redis
+├── cmd/                # Entrypoint alternatif
+├── main.go             # Entrypoint utama aplikasi
+├── .env                # Konfigurasi rahasia (.gitignore)
+└── example.env         # Contoh file konfigurasi environment
 ```
 
 ## ⚙️ Persiapan & Instalasi
 
-1. **Clone Repositori**
-   ```bash
-   git clone https://github.com/misbakhul29/learn-golang-api.git
-   cd belajar
-   ```
+### 1. Clone Repositori
+```bash
+git clone https://github.com/misbakhul29/learn-golang-api.git
+cd belajar
+```
 
-2. **Konfigurasi Environment**
-   Salin file `example.env` menjadi `.env` dan sesuaikan nilainya:
-   ```bash
-   cp example.env .env
-   ```
+### 2. Konfigurasi Environment
+Salin file `example.env` menjadi `.env` dan sesuaikan nilainya (termasuk kredensial DB dan Redis):
+```bash
+cp example.env .env
+```
 
-3. **Instal Dependensi**
-   ```bash
-   go mod tidy
-   ```
+### 3. Jalankan Docker (Opsional)
+Pastikan PostgreSQL dan Redis Anda sudah berjalan di port yang sesuai dengan konfigurasi `.env`.
 
-4. **Jalankan Aplikasi**
-   ```bash
-   go run main.go
-   ```
-   Aplikasi akan berjalan di `http://localhost:8080`.
+### 4. Instal Dependensi
+```bash
+go mod tidy
+```
+
+### 5. Jalankan Aplikasi
+Untuk pengembangan lokal dengan hot reload:
+```bash
+air
+```
+Atau jalankan langsung menggunakan perintah bawaan Go:
+```bash
+go run main.go
+```
+Aplikasi akan berjalan secara default di `http://localhost:8080`.
 
 ## 📖 Dokumentasi API
 
-Setelah aplikasi berjalan, Anda dapat mengakses dokumentasi interaktif di:
+Setelah aplikasi berjalan, dokumentasi interaktif dapat diakses langsung pada browser:
 - **Swagger UI**: `http://localhost:8080/docs`
-- **OpenAPI Spec**: `http://localhost:8080/openapi.json`
+- **Schemas**: `http://localhost:8080/schemas`
 
 ## 🛡️ Contoh Penggunaan (cURL)
 
-**Mendapatkan Semua User:**
+Setiap request wajib menyertakan header `X-API-Key` sesuai konfigurasi di `.env`.
+
+### A. Endpoint Users
+
+**Mendapatkan Semua User (Cached):**
 ```bash
 curl --request GET \
   --url http://localhost:8080/api/users \
   --header 'X-API-Key: mysecretkey'
 ```
 
-**Update User (Partial):**
+**Mendapatkan Detail User (Cached):**
 ```bash
-curl --request PUT \
-  --url http://localhost:8080/api/users/{id} \
-  --header 'Content-Type: application/json' \
-  --header 'X-API-Key: mysecretkey' \
-  --data '{
-    "email": "new_email@example.com"
-  }'
+curl --request GET \
+  --url http://localhost:8080/api/users/USER_UUID \
+  --header 'X-API-Key: mysecretkey'
+```
+
+---
+
+### B. Endpoint Posts
+
+**Mendapatkan Semua Post (Tanpa Data User):**
+```bash
+curl --request GET \
+  --url http://localhost:8080/api/posts \
+  --header 'X-API-Key: mysecretkey'
+```
+
+**Mendapatkan Semua Post beserta Detail Penulis (Preloaded):**
+```bash
+curl --request GET \
+  --url http://localhost:8080/api/posts?include_users=true \
+  --header 'X-API-Key: mysecretkey'
 ```
 
 ---
